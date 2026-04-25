@@ -44,7 +44,13 @@ export async function POST(req: NextRequest) {
     `${t.date} | ${t.type === 'income' ? 'Receita' : 'Despesa'} | ${brl(Number(t.amount))} | ${t.category}${t.description ? ' — ' + t.description : ''}`
   ).join('\n') ?? 'Nenhuma transação este mês.'
 
-  const systemPrompt = `Você é um assistente financeiro pessoal do app Finance. Responda SEMPRE em português brasileiro, de forma concisa e útil.
+  const systemPrompt = `Você é um assistente financeiro do app Finance.
+
+INSTRUÇÕES OBRIGATÓRIAS:
+- Responda SOMENTE em português brasileiro
+- NÃO escreva em inglês em hipótese alguma
+- NÃO mostre raciocínio, planejamento ou pensamentos internos
+- Seja direto e conciso — vá direto ao ponto
 
 DATA DE HOJE: ${today}
 
@@ -56,17 +62,14 @@ RESUMO DO MÊS (${monthName}):
 TRANSAÇÕES DO MÊS:
 ${txLines}
 
-━━ REGRAS IMPORTANTES ━━
-1. Se o usuário quiser REGISTRAR uma transação, inclua ao final da resposta:
+REGRAS:
+1. Para REGISTRAR uma transação, inclua ao final:
    <transaction>{"type":"expense","amount":50.00,"category":"Alimentação","description":"Mercado","date":"${today}"}</transaction>
 
 2. Categorias DESPESA: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Vestuário, Contas, Compras, Outros
-   Categorias RECEITA (type="income"): Salário, Freelance, Investimentos, Aluguel recebido, Presente, Outros
+   Categorias RECEITA: Salário, Freelance, Investimentos, Aluguel recebido, Presente, Outros
 
-3. Valores no JSON: use ponto decimal (50.00, não 50,00). Datas: YYYY-MM-DD.
-4. "hoje" = ${today}. Interprete expressões como "ontem", "semana passada" etc.
-5. Responda perguntas sobre gastos analisando os dados acima.
-6. Seja direto: sem enrolação, sem blocos de código desnecessários.`
+3. JSON: ponto decimal (15.00), datas YYYY-MM-DD, hoje = ${today}`
 
   const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
