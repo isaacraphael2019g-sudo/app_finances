@@ -16,7 +16,7 @@ import TransactionForm from '@/components/transaction-form'
 import ImportModal from '@/components/import-modal'
 import PeriodFilter, { Period } from '@/components/period-filter'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Upload, CheckSquare, Square } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -27,8 +27,10 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [selected, setSelected] = useState<Transaction | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [filterCategory, setFilterCategory] = useState('Todas')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
   const [dateStart, setDateStart] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
@@ -37,6 +39,7 @@ export default function TransactionsPage() {
 
   const loadTransactions = useCallback(async () => {
     setLoading(true)
+    setSelectedIds(new Set())
     const supabase = createClient()
 
     let query = supabase
@@ -57,6 +60,22 @@ export default function TransactionsPage() {
 
   useEffect(() => { loadTransactions() }, [loadTransactions])
 
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev =>
+      prev.size === transactions.length
+        ? new Set()
+        : new Set(transactions.map(t => t.id))
+    )
+  }
+
   async function handleDelete() {
     if (!selected) return
     const supabase = createClient()
@@ -67,6 +86,19 @@ export default function TransactionsPage() {
       toast.success('Transação excluída')
       setDeleteOpen(false)
       setSelected(null)
+      loadTransactions()
+    }
+  }
+
+  async function handleBulkDelete() {
+    const supabase = createClient()
+    const ids = Array.from(selectedIds)
+    const { error } = await supabase.from('transactions').delete().in('id', ids)
+    if (error) {
+      toast.error('Erro ao excluir transações')
+    } else {
+      toast.success(`${ids.length} transação(ões) excluída(s)`)
+      setBulkDeleteOpen(false)
       loadTransactions()
     }
   }
@@ -100,6 +132,26 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-foreground">
+              {selectedIds.size === transactions.length
+                ? <CheckSquare className="h-4 w-4 text-red-600" />
+                : <Square className="h-4 w-4" />}
+            </button>
+            <span className="text-sm font-medium">{selectedIds.size} selecionada(s)</span>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>Cancelar</Button>
+            <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => setBulkDeleteOpen(true)}>
+              <Trash2 className="h-3.5 w-3.5" /> Excluir {selectedIds.size}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Period Filter */}
       <PeriodFilter onFilter={handlePeriodFilter} defaultPeriod={activePeriod} />
 
@@ -127,7 +179,6 @@ export default function TransactionsPage() {
           </SelectContent>
         </Select>
 
-        {/* Mini summary */}
         {!loading && transactions.length > 0 && (
           <div className="flex items-center gap-3 ml-auto text-sm">
             <span className="text-green-600 font-medium">+{brl(totalIncome)}</span>
@@ -161,8 +212,20 @@ export default function TransactionsPage() {
       ) : (
         <div className="space-y-2">
           {transactions.map((t) => (
-            <Card key={t.id} className="hover:shadow-sm transition-shadow">
+            <Card
+              key={t.id}
+              className={`hover:shadow-sm transition-shadow cursor-pointer ${selectedIds.has(t.id) ? 'ring-2 ring-red-400 dark:ring-red-600' : ''}`}
+              onClick={() => toggleSelect(t.id)}
+            >
               <CardContent className="flex items-center gap-4 py-4">
+                <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(t.id)}
+                    onChange={() => toggleSelect(t.id)}
+                    className="h-4 w-4 cursor-pointer accent-red-500"
+                  />
+                </div>
                 <div className={`rounded-full p-2 ${t.type === 'income' ? 'bg-green-100 dark:bg-green-950' : 'bg-red-100 dark:bg-red-950'}`}>
                   {t.type === 'income'
                     ? <TrendingUp className="h-4 w-4 text-green-600" />
@@ -185,7 +248,7 @@ export default function TransactionsPage() {
                     {t.type === 'income' ? '+' : '-'} {brl(t.amount)}
                   </span>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                   <Button variant="ghost" size="icon" className="h-8 w-8"
                     onClick={() => { setSelected(t); setFormOpen(true) }}>
                     <Pencil className="h-3.5 w-3.5" />
@@ -214,6 +277,7 @@ export default function TransactionsPage() {
         onSuccess={loadTransactions}
       />
 
+      {/* Single delete dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -225,6 +289,24 @@ export default function TransactionsPage() {
           <div className="flex gap-2 mt-2">
             <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
             <Button variant="destructive" className="flex-1" onClick={handleDelete}>Excluir</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete dialog */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir {selectedIds.size} transação(ões)</DialogTitle>
+            <DialogDescription>
+              Tem certeza? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setBulkDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" className="flex-1" onClick={handleBulkDelete}>
+              Excluir {selectedIds.size}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
