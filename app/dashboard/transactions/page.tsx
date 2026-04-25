@@ -40,10 +40,9 @@ export default function TransactionsPage() {
   const [filterCategory, setFilterCategory] = useState('Todas')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
 
-  const supabase = createClient()
-
   const loadTransactions = useCallback(async () => {
     setLoading(true)
+    const supabase = createClient()
     const [year, month] = filterMonth.split('-')
     const start = `${year}-${month}-01`
     const end = `${year}-${month}-31`
@@ -59,7 +58,7 @@ export default function TransactionsPage() {
     if (filterCategory !== 'Todas') query = query.eq('category', filterCategory)
 
     const { data, error } = await query
-    if (error) toast.error('Erro ao carregar transações')
+    if (error) toast.error(`Erro: ${error.message}`)
     else setTransactions(data || [])
     setLoading(false)
   }, [filterMonth, filterCategory, filterType])
@@ -68,6 +67,7 @@ export default function TransactionsPage() {
 
   async function handleDelete() {
     if (!selected) return
+    const supabase = createClient()
     const { error } = await supabase.from('transactions').delete().eq('id', selected.id)
     if (error) {
       toast.error('Erro ao excluir transação')

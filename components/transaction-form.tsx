@@ -43,8 +43,6 @@ export default function TransactionForm({
     date: new Date().toISOString().split('T')[0],
   })
 
-  const supabase = createClient()
-
   useEffect(() => {
     if (transaction) {
       setForm({
@@ -81,8 +79,13 @@ export default function TransactionForm({
 
     setLoading(true)
 
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      toast.error('Sessão expirada. Faça login novamente.')
+      setLoading(false)
+      return
+    }
 
     const payload = {
       user_id: user.id,
@@ -104,7 +107,7 @@ export default function TransactionForm({
     }
 
     if (error) {
-      toast.error('Erro ao salvar transação')
+      toast.error(`Erro ao salvar: ${error.message}`)
     } else {
       toast.success(transaction ? 'Transação atualizada!' : 'Transação criada!')
       onSuccess()

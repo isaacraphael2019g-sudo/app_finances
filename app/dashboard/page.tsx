@@ -26,12 +26,11 @@ export default function DashboardPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  const supabase = createClient()
-
   const monthKey = format(currentDate, 'yyyy-MM')
 
   const loadTransactions = useCallback(async () => {
     setLoading(true)
+    const supabase = createClient()
     const [year, month] = monthKey.split('-')
     const start = `${year}-${month}-01`
     const end = `${year}-${month}-31`
@@ -43,7 +42,7 @@ export default function DashboardPage() {
       .lte('date', end)
       .order('date', { ascending: false })
 
-    if (error) toast.error('Erro ao carregar dados')
+    if (error) toast.error(`Erro: ${error.message}`)
     else setTransactions(data || [])
     setLoading(false)
   }, [monthKey])
