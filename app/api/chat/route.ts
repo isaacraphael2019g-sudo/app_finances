@@ -21,28 +21,43 @@ export async function POST(req: NextRequest) {
   const { messages } = await req.json()
 
   const now = new Date()
-  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-  const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+  const today = format(now, 'yyyy-MM-dd')
+
+  // Busca os últimos 3 meses
+  const threeMonthsAgo = new Date(now)
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 2)
+  const rangeStart = format(startOfMonth(threeMonthsAgo), 'yyyy-MM-dd')
+  const rangeEnd = format(endOfMonth(now), 'yyyy-MM-dd')
 
   const { data: transactions } = await supabase
     .from('transactions')
     .select('*')
-    .gte('date', monthStart)
-    .lte('date', monthEnd)
+    .gte('date', rangeStart)
+    .lte('date', rangeEnd)
     .order('date', { ascending: false })
-    .limit(50)
-
-  const income = transactions?.filter(t => t.type === 'income').reduce((a, t) => a + Number(t.amount), 0) ?? 0
-  const expenses = transactions?.filter(t => t.type === 'expense').reduce((a, t) => a + Number(t.amount), 0) ?? 0
-  const balance = income - expenses
+    .limit(150)
 
   const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
-  const today = format(now, 'yyyy-MM-dd')
-  const monthName = format(now, 'MMMM yyyy', { locale: ptBR })
 
-  const txLines = transactions?.slice(0, 25).map(t =>
+  // Agrupa por mês para o resumo
+  const byMonth: Record<string, { income: number; expenses: number }> = {}
+  transactions?.forEach(t => {
+    const month = t.date.slice(0, 7)
+    if (!byMonth[month]) byMonth[month] = { income: 0, expenses: 0 }
+    if (t.type === 'income') byMonth[month].income += Number(t.amount)
+    else byMonth[month].expenses += Number(t.amount)
+  })
+
+  const monthSummary = Object.entries(byMonth)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([month, { income, expenses }]) => {
+      const label = format(new Date(month + '-01'), 'MMMM yyyy', { locale: ptBR })
+      return `${label}: Receitas ${brl(income)} | Despesas ${brl(expenses)} | Saldo ${brl(income - expenses)}`
+    }).join('\n')
+
+  const txLines = transactions?.slice(0, 80).map(t =>
     `${t.date} | ${t.type === 'income' ? 'Receita' : 'Despesa'} | ${brl(Number(t.amount))} | ${t.category}${t.description ? ' — ' + t.description : ''}`
-  ).join('\n') ?? 'Nenhuma transação este mês.'
+  ).join('\n') ?? 'Nenhuma transação encontrada.'
 
   const systemPrompt = `Você é um assistente financeiro do app Finance.
 
@@ -54,12 +69,10 @@ INSTRUÇÕES OBRIGATÓRIAS:
 
 DATA DE HOJE: ${today}
 
-RESUMO DO MÊS (${monthName}):
-• Receitas:  ${brl(income)}
-• Despesas:  ${brl(expenses)}
-• Saldo:     ${brl(balance)}
+RESUMO POR MÊS (últimos 3 meses):
+${monthSummary}
 
-TRANSAÇÕES DO MÊS:
+TRANSAÇÕES RECENTES:
 ${txLines}
 
 REGRAS:
@@ -69,7 +82,8 @@ REGRAS:
 2. Categorias DESPESA: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Vestuário, Contas, Compras, Outros
    Categorias RECEITA: Salário, Freelance, Investimentos, Aluguel recebido, Presente, Outros
 
-3. JSON: ponto decimal (15.00), datas YYYY-MM-DD, hoje = ${today}`
+3. JSON: ponto decimal (15.00), datas YYYY-MM-DD, hoje = ${today}
+4. Quando o usuário perguntar sobre um mês específico, use os dados do RESUMO POR MÊS acima`
 
   const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import CategoryChart from '@/components/category-chart'
 import MonthlyTrendChart from '@/components/monthly-trend-chart'
 import TransactionForm from '@/components/transaction-form'
+import PeriodFilter, { Period } from '@/components/period-filter'
 import { toast } from 'sonner'
-import { TrendingUp, TrendingDown, Wallet, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns'
+import { TrendingUp, TrendingDown, Wallet, Plus } from 'lucide-react'
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -19,29 +20,31 @@ export default function DashboardPage() {
   const [trendData, setTrendData] = useState<{ month: string; Receitas: number; Despesas: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
-  const [currentDate, setCurrentDate] = useState(new Date())
-
-  const monthKey = format(currentDate, 'yyyy-MM')
+  const [dateStart, setDateStart] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [dateEnd, setDateEnd] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [activePeriod, setActivePeriod] = useState<Period>('month')
 
   const loadTransactions = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
-    const [year, month] = monthKey.split('-')
-    const start = `${year}-${month}-01`
-    const lastDay = getDaysInMonth(new Date(Number(year), Number(month) - 1))
-    const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
 
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
-      .gte('date', start)
-      .lte('date', end)
+      .gte('date', dateStart)
+      .lte('date', dateEnd)
       .order('date', { ascending: false })
 
     if (error) toast.error(`Erro: ${error.message}`)
     else setTransactions(data || [])
     setLoading(false)
-  }, [monthKey])
+  }, [dateStart, dateEnd])
+
+  function handlePeriodFilter(start: string, end: string, period: Period) {
+    setDateStart(start)
+    setDateEnd(end)
+    setActivePeriod(period)
+  }
 
   const loadTrend = useCallback(async () => {
     const supabase = createClient()
@@ -99,26 +102,16 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">Resumo financeiro do mês</p>
+          <p className="text-muted-foreground text-sm mt-1">Resumo financeiro do período</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium px-2 min-w-36 text-center capitalize">
-              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-            </span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button onClick={() => setFormOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nova transação</span>
-          </Button>
-        </div>
+        <Button onClick={() => setFormOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Nova transação</span>
+        </Button>
       </div>
+
+      {/* Period Filter */}
+      <PeriodFilter onFilter={handlePeriodFilter} defaultPeriod={activePeriod} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
