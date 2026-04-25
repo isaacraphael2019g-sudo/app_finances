@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, Transaction, TransactionFormData } from '@/lib/types'
+import { CurrencyInput } from '@/components/ui/currency-input'
 
 interface TransactionFormProps {
   open: boolean
@@ -153,16 +154,10 @@ export default function TransactionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Valor (R$)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0,00"
-              value={form.amount || ''}
-              onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
-              required
+            <Label>Valor</Label>
+            <CurrencyInput
+              value={form.amount}
+              onChange={(value) => setForm({ ...form, amount: value })}
             />
           </div>
 

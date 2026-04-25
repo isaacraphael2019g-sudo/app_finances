@@ -7,52 +7,43 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
 import TransactionForm from '@/components/transaction-form'
+import ImportModal from '@/components/import-modal'
+import PeriodFilter, { Period } from '@/components/period-filter'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
-import { format, getDaysInMonth } from 'date-fns'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Upload } from 'lucide-react'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-const ALL_CATEGORIES = ['Todas', ...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES.filter(
-  c => !INCOME_CATEGORIES.includes(c)
-)]
+const ALL_CATEGORIES = ['Todas', ...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES.filter(c => !INCOME_CATEGORIES.includes(c))]
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [selected, setSelected] = useState<Transaction | null>(null)
-  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [filterCategory, setFilterCategory] = useState('Todas')
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
+  const [dateStart, setDateStart] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [dateEnd, setDateEnd] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [activePeriod, setActivePeriod] = useState<Period>('month')
 
   const loadTransactions = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
-    const [year, month] = filterMonth.split('-')
-    const start = `${year}-${month}-01`
-    const lastDay = getDaysInMonth(new Date(Number(year), Number(month) - 1))
-    const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
 
     let query = supabase
       .from('transactions')
       .select('*')
-      .gte('date', start)
-      .lte('date', end)
+      .gte('date', dateStart)
+      .lte('date', dateEnd)
       .order('date', { ascending: false })
 
     if (filterType !== 'all') query = query.eq('type', filterType)
@@ -62,7 +53,7 @@ export default function TransactionsPage() {
     if (error) toast.error(`Erro: ${error.message}`)
     else setTransactions(data || [])
     setLoading(false)
-  }, [filterMonth, filterCategory, filterType])
+  }, [dateStart, dateEnd, filterCategory, filterType])
 
   useEffect(() => { loadTransactions() }, [loadTransactions])
 
@@ -80,40 +71,41 @@ export default function TransactionsPage() {
     }
   }
 
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date()
-    d.setMonth(d.getMonth() - i)
-    return format(d, 'yyyy-MM')
-  })
+  function handlePeriodFilter(start: string, end: string, period: Period) {
+    setDateStart(start)
+    setDateEnd(end)
+    setActivePeriod(period)
+  }
+
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0)
+  const totalExpense = transactions.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0)
+  const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Transações</h1>
           <p className="text-muted-foreground text-sm mt-1">{transactions.length} transação(ões) encontrada(s)</p>
         </div>
-        <Button onClick={() => { setSelected(null); setFormOpen(true) }} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova transação
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">Importar</span>
+          </Button>
+          <Button onClick={() => { setSelected(null); setFormOpen(true) }} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova transação</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Select value={filterMonth} onValueChange={(v) => v && setFilterMonth(v)}>
-          <SelectTrigger className="w-44 bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((m) => (
-              <SelectItem key={m} value={m}>
-                {format(new Date(m + '-01'), 'MMMM yyyy', { locale: ptBR })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Period Filter */}
+      <PeriodFilter onFilter={handlePeriodFilter} defaultPeriod={activePeriod} />
 
-        <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+      {/* Type & Category filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterType} onValueChange={(v) => v && setFilterType(v as typeof filterType)}>
           <SelectTrigger className="w-36 bg-background">
             <SelectValue />
           </SelectTrigger>
@@ -134,6 +126,17 @@ export default function TransactionsPage() {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Mini summary */}
+        {!loading && transactions.length > 0 && (
+          <div className="flex items-center gap-3 ml-auto text-sm">
+            <span className="text-green-600 font-medium">+{brl(totalIncome)}</span>
+            <span className="text-red-600 font-medium">-{brl(totalExpense)}</span>
+            <span className={`font-semibold ${totalIncome - totalExpense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+              = {brl(totalIncome - totalExpense)}
+            </span>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -145,8 +148,8 @@ export default function TransactionsPage() {
       ) : transactions.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="rounded-full bg-gray-100 p-4 mb-4">
-              <TrendingUp className="h-8 w-8 text-gray-400" />
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <TrendingUp className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-foreground font-medium">Nenhuma transação encontrada</p>
             <p className="text-muted-foreground text-sm mt-1">Ajuste os filtros ou adicione uma nova transação</p>
@@ -160,7 +163,7 @@ export default function TransactionsPage() {
           {transactions.map((t) => (
             <Card key={t.id} className="hover:shadow-sm transition-shadow">
               <CardContent className="flex items-center gap-4 py-4">
-                <div className={`rounded-full p-2 ${t.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                <div className={`rounded-full p-2 ${t.type === 'income' ? 'bg-green-100 dark:bg-green-950' : 'bg-red-100 dark:bg-red-950'}`}>
                   {t.type === 'income'
                     ? <TrendingUp className="h-4 w-4 text-green-600" />
                     : <TrendingDown className="h-4 w-4 text-red-600" />
@@ -179,24 +182,16 @@ export default function TransactionsPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <span className={`font-semibold text-lg ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {t.type === 'income' ? '+' : '-'} R$ {t.amount.toFixed(2).replace('.', ',')}
+                    {t.type === 'income' ? '+' : '-'} {brl(t.amount)}
                   </span>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => { setSelected(t); setFormOpen(true) }}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8"
+                    onClick={() => { setSelected(t); setFormOpen(true) }}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => { setSelected(t); setDeleteOpen(true) }}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                    onClick={() => { setSelected(t); setDeleteOpen(true) }}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -213,6 +208,12 @@ export default function TransactionsPage() {
         onSuccess={loadTransactions}
       />
 
+      <ImportModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSuccess={loadTransactions}
+      />
+
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -222,12 +223,8 @@ export default function TransactionsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" className="flex-1" onClick={handleDelete}>
-              Excluir
-            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" className="flex-1" onClick={handleDelete}>Excluir</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -42,7 +42,7 @@ export default function LoginPage() {
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2 text-blue-600">
             <TrendingUp className="h-8 w-8" />
-            <span className="text-2xl font-bold text-foreground">FinançasPessoais</span>
+            <span className="text-2xl font-bold text-foreground">Finance</span>
           </div>
         </div>
 

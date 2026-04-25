@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { TrendingUp, LayoutDashboard, List, LogOut } from 'lucide-react'
+import { TrendingUp, LayoutDashboard, List, Bot, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +28,7 @@ export default function Navbar({ userEmail }: NavbarProps) {
   const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/transactions', label: 'Transações', icon: List },
+    { href: '/dashboard/chat', label: 'Chat IA', icon: Bot },
   ]
 
   return (
@@ -37,7 +38,7 @@ export default function Navbar({ userEmail }: NavbarProps) {
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="flex items-center gap-2 text-blue-600">
               <TrendingUp className="h-6 w-6" />
-              <span className="font-bold text-foreground hidden sm:block">FinançasPessoais</span>
+              <span className="font-bold text-foreground hidden sm:block">Finance</span>
             </Link>
             <nav className="flex items-center gap-1">
               {links.map(({ href, label, icon: Icon }) => (

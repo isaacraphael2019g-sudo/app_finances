@@ -10,7 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "FinançasPessoais",
+  title: "Finance",
   description: "Controle suas finanças pessoais de forma simples e visual",
 };
 
