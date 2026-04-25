@@ -76,7 +76,7 @@ REGRAS:
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://finance-app.local',
+      'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
       'X-Title': 'Finance App',
     },
     body: JSON.stringify({
