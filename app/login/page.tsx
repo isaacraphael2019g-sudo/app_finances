@@ -101,7 +101,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Bem-vindo de volta</h2>
+            <h2 className="text-2xl font-bold text-foreground">Bem-Vindo</h2>
             <p className="text-muted-foreground text-sm mt-1">Entre na sua conta para continuar</p>
           </div>
 

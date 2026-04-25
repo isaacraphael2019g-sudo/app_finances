@@ -22,11 +22,14 @@ export default function SignupPage() {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success('Conta criada! Verifique seu email para confirmar.')
+      toast.success('Conta criada com sucesso! Faça login para continuar.')
       router.push('/login')
     }
     setLoading(false)

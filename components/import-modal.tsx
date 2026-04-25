@@ -56,17 +56,39 @@ function normalizeDate(raw: string): string {
 }
 
 function parseCSV(content: string): PreviewRow[] {
-  const result = Papa.parse<Record<string, string>>(content, {
+  // Skip metadata rows at the top (e.g. bank statement headers) — find the real header line
+  const lines = content.split(/\r?\n/)
+  let startIndex = 0
+  for (let i = 0; i < lines.length; i++) {
+    const norm = lines[i].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    if ((norm.includes('data') || norm.includes('date')) && (norm.includes('valor') || norm.includes('amount'))) {
+      startIndex = i
+      break
+    }
+  }
+
+  const result = Papa.parse<Record<string, string>>(lines.slice(startIndex).join('\n'), {
     header: true, skipEmptyLines: true,
-    transformHeader: (h) => h.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, ''),
+    transformHeader: (h) => h.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' '),
   })
   const rows = result.data
   if (!rows.length) return []
   const keys = Object.keys(rows[0])
 
-  const dateKey = keys.find(k => ['data', 'date', 'dt', 'competencia'].some(d => k.includes(d)))
-  const amountKey = keys.find(k => ['valor', 'amount', 'value', 'vlr', 'vl'].some(d => k.includes(d)))
-  const descKey = keys.find(k => ['descricao', 'description', 'memo', 'historico', 'lancamento', 'title', 'estabelecimento'].some(d => k.includes(d)))
+  // Search term-first so earlier terms have priority (e.g. 'descricao' beats 'lancamento')
+  const findKey = (terms: string[], exclude?: string) => {
+    for (const term of terms) {
+      const k = keys.find(k => k !== exclude && k.includes(term))
+      if (k) return k
+    }
+    return undefined
+  }
+
+  const dateKey = findKey(['data', 'date', 'dt', 'competencia'])
+  const amountKey = findKey(['valor', 'amount', 'value', 'vlr', 'vl'])
+  const descKey = findKey(['descricao', 'description', 'memo', 'historico', 'lancamento', 'title', 'estabelecimento'], dateKey)
+  const typeKey = findKey(['tipo', 'type'])
+  const catKey = findKey(['categoria', 'category'])
 
   if (!dateKey || !amountKey) return []
 
@@ -74,12 +96,19 @@ function parseCSV(content: string): PreviewRow[] {
     const rawAmt = row[amountKey] || '0'
     const isNeg = rawAmt.trim().startsWith('-')
     const amount = parseAmount(rawAmt)
+    const rawType = typeKey ? row[typeKey]?.toLowerCase().trim() : null
+    const type: TransactionType = rawType === 'expense' || rawType === 'despesa'
+      ? 'expense'
+      : rawType === 'income' || rawType === 'receita'
+        ? 'income'
+        : isNeg ? 'expense' : 'income'
+    const category = (catKey && row[catKey]?.trim()) ? row[catKey].trim() : 'Outros'
     return {
       id: crypto.randomUUID(),
       date: normalizeDate(row[dateKey] || ''),
-      type: isNeg ? 'expense' : 'income',
+      type,
       amount,
-      category: 'Outros',
+      category,
       description: descKey ? (row[descKey] || '') : '',
       selected: amount > 0,
     } satisfies PreviewRow
@@ -126,6 +155,8 @@ function parseXLSX(buffer: ArrayBuffer): PreviewRow[] {
   const dateKey = find(['data', 'date', 'dt'])
   const amountKey = find(['valor', 'amount', 'value', 'vlr'])
   const descKey = find(['descricao', 'description', 'memo', 'historico', 'lancamento'])
+  const typeKey = find(['tipo', 'type'])
+  const catKey = find(['categoria', 'category'])
 
   if (!dateKey || !amountKey) return []
 
@@ -141,13 +172,20 @@ function parseXLSX(buffer: ArrayBuffer): PreviewRow[] {
     const rawAmt = String(row[amountKey] || '0')
     const isNeg = rawAmt.trim().startsWith('-')
     const amount = parseAmount(rawAmt)
+    const rawType = typeKey ? String(row[typeKey] || '').toLowerCase().trim() : null
+    const type: TransactionType = rawType === 'expense' || rawType === 'despesa'
+      ? 'expense'
+      : rawType === 'income' || rawType === 'receita'
+        ? 'income'
+        : isNeg ? 'expense' : 'income'
+    const category = (catKey && String(row[catKey] || '').trim()) ? String(row[catKey]).trim() : 'Outros'
 
     return {
       id: crypto.randomUUID(),
       date,
-      type: isNeg ? 'expense' : 'income',
+      type,
       amount,
-      category: 'Outros',
+      category,
       description: descKey ? String(row[descKey] || '') : '',
       selected: amount > 0,
     } satisfies PreviewRow
@@ -254,7 +292,7 @@ export default function ImportModal({ open, onOpenChange, onSuccess }: ImportMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Importar Transações</DialogTitle>
           <DialogDescription>
@@ -298,7 +336,7 @@ export default function ImportModal({ open, onOpenChange, onSuccess }: ImportMod
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 max-h-64 border rounded-lg">
+            <ScrollArea className="flex-1 min-h-0 border rounded-lg overflow-auto">
               <table className="w-full text-xs">
                 <thead className="bg-muted/50 sticky top-0">
                   <tr>
