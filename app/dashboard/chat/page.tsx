@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Send, Bot, User, TrendingUp, TrendingDown, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Send, MessageSquare, Bot, User, TrendingUp, TrendingDown, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/types'
 
 interface Message {
@@ -146,13 +146,10 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] max-h-[calc(100vh-5rem)]">
       <div className="flex items-center gap-3 mb-4 shrink-0">
-        <div className="bg-blue-100 dark:bg-blue-950 rounded-full p-2">
-          <Bot className="h-5 w-5 text-blue-600" />
+        <div className="h-9 w-9 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+          <MessageSquare className="h-5 w-5 text-white" />
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Chat Finance AI</h1>
-          <p className="text-sm text-muted-foreground">Powered by Llama 3.3 (Groq) · Seus dados financeiros são o contexto</p>
-        </div>
+        <h1 className="text-xl font-bold text-foreground">Meu Assistente</h1>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4 shrink-0">
@@ -267,9 +264,6 @@ export default function ChatPage() {
             <Send className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5 text-center">
-          Enter para enviar · Shift+Enter para nova linha
-        </p>
       </div>
     </div>
   )
