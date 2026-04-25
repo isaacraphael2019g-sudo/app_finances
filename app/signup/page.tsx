@@ -35,12 +35,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2 text-blue-600">
             <TrendingUp className="h-8 w-8" />
-            <span className="text-2xl font-bold text-gray-900">FinançasPessoais</span>
+            <span className="text-2xl font-bold text-foreground">FinançasPessoais</span>
           </div>
         </div>
 
@@ -78,7 +78,7 @@ export default function SignupPage() {
                 {loading ? 'Criando conta...' : 'Criar conta'}
               </Button>
             </form>
-            <p className="text-center text-sm text-gray-600 mt-4">
+            <p className="text-center text-sm text-muted-foreground mt-4">
               Já tem conta?{' '}
               <Link href="/login" className="text-blue-600 hover:underline font-medium">
                 Entrar

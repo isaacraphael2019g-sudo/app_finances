@@ -80,11 +80,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Resumo financeiro do mês</p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">Resumo financeiro do mês</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-1">
             <Button
               variant="ghost"
               size="icon"
@@ -117,8 +117,8 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Receitas</p>
-                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-gray-200' : 'text-green-600'}`}>
+                <p className="text-sm text-muted-foreground">Receitas</p>
+                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-muted' : 'text-green-600'}`}>
                   {loading ? 'R$ ---' : formatCurrency(totalIncome)}
                 </p>
               </div>
@@ -133,8 +133,8 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Despesas</p>
-                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-gray-200' : 'text-red-600'}`}>
+                <p className="text-sm text-muted-foreground">Despesas</p>
+                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-muted' : 'text-red-600'}`}>
                   {loading ? 'R$ ---' : formatCurrency(totalExpense)}
                 </p>
               </div>
@@ -149,8 +149,8 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Saldo</p>
-                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-gray-200' : balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                <p className="text-sm text-muted-foreground">Saldo</p>
+                <p className={`text-2xl font-bold mt-1 ${loading ? 'animate-pulse text-muted' : balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
                   {loading ? 'R$ ---' : formatCurrency(balance)}
                 </p>
               </div>

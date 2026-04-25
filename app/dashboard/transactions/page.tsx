@@ -89,8 +89,8 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transações</h1>
-          <p className="text-gray-500 text-sm mt-1">{transactions.length} transação(ões) encontrada(s)</p>
+          <h1 className="text-2xl font-bold text-foreground">Transações</h1>
+          <p className="text-muted-foreground text-sm mt-1">{transactions.length} transação(ões) encontrada(s)</p>
         </div>
         <Button onClick={() => { setSelected(null); setFormOpen(true) }} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -100,7 +100,7 @@ export default function TransactionsPage() {
 
       <div className="flex flex-wrap gap-3">
         <Select value={filterMonth} onValueChange={(v) => v && setFilterMonth(v)}>
-          <SelectTrigger className="w-44 bg-white">
+          <SelectTrigger className="w-44 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -113,7 +113,7 @@ export default function TransactionsPage() {
         </Select>
 
         <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-          <SelectTrigger className="w-36 bg-white">
+          <SelectTrigger className="w-36 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -124,7 +124,7 @@ export default function TransactionsPage() {
         </Select>
 
         <Select value={filterCategory} onValueChange={(v) => v && setFilterCategory(v)}>
-          <SelectTrigger className="w-44 bg-white">
+          <SelectTrigger className="w-44 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-white rounded-lg animate-pulse border border-gray-100" />
+            <div key={i} className="h-20 bg-card rounded-lg animate-pulse border border-border" />
           ))}
         </div>
       ) : transactions.length === 0 ? (
@@ -147,8 +147,8 @@ export default function TransactionsPage() {
             <div className="rounded-full bg-gray-100 p-4 mb-4">
               <TrendingUp className="h-8 w-8 text-gray-400" />
             </div>
-            <p className="text-gray-600 font-medium">Nenhuma transação encontrada</p>
-            <p className="text-gray-400 text-sm mt-1">Ajuste os filtros ou adicione uma nova transação</p>
+            <p className="text-foreground font-medium">Nenhuma transação encontrada</p>
+            <p className="text-muted-foreground text-sm mt-1">Ajuste os filtros ou adicione uma nova transação</p>
             <Button className="mt-4 gap-2" onClick={() => { setSelected(null); setFormOpen(true) }}>
               <Plus className="h-4 w-4" /> Adicionar transação
             </Button>
@@ -167,12 +167,12 @@ export default function TransactionsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900 truncate">
+                    <span className="font-medium text-foreground truncate">
                       {t.description || t.category}
                     </span>
                     <Badge variant="secondary" className="text-xs shrink-0">{t.category}</Badge>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     {format(new Date(t.date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </p>
                 </div>
