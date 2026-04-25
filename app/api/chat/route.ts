@@ -77,7 +77,7 @@ ${txLines}
       'X-Title': 'Finance App',
     },
     body: JSON.stringify({
-      model: 'nvidia/nemotron-3-super-120b-a12b:free',
+      model: 'google/gemma-4-26b-a4b-it:free',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 1024,
       temperature: 0.7,
