@@ -171,16 +171,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Monthly Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Evolução — Últimos 6 Meses</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MonthlyTrendChart data={trendData} />
-        </CardContent>
-      </Card>
-
       {/* Charts + Top Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -237,6 +227,16 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Monthly Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Evolução — Últimos 6 Meses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthlyTrendChart data={trendData} />
+        </CardContent>
+      </Card>
 
       {/* Recent Transactions */}
       <Card>
