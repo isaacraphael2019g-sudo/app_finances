@@ -11,10 +11,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
-  const groqKey = process.env.GROQ_API_KEY
+  const groqKey = process.env.GROQ_API_KEY?.trim()
   if (!groqKey) {
     return NextResponse.json({
       error: 'Chave GROQ_API_KEY não configurada. Adicione-a no arquivo .env.local e reinicie o servidor.',
+    }, { status: 500 })
+  }
+  if (!groqKey.startsWith('gsk_')) {
+    return NextResponse.json({
+      error: 'GROQ_API_KEY inválida — a chave deve começar com "gsk_". Verifique o valor em .env.local e reinicie o servidor.',
     }, { status: 500 })
   }
 
