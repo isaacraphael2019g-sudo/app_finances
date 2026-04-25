@@ -139,3 +139,12 @@
     @apply font-sans;
   }
 }
+
+/* Direct dark mode overrides — bypasses Tailwind @theme inline build-time baking */
+html.dark body {
+  background-color: #0f172a;
+}
+html.dark .bg-card,
+html.dark [data-slot="card"] {
+  background-color: #1e293b;
+}
