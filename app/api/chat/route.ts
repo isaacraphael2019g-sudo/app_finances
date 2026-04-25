@@ -77,7 +77,7 @@ ${txLines}
       'X-Title': 'Finance App',
     },
     body: JSON.stringify({
-      model: 'deepseek/deepseek-chat:free',
+      model: 'deepseek/deepseek-r1:free',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 1024,
       temperature: 0.7,
@@ -90,7 +90,8 @@ ${txLines}
   }
 
   const aiData = await aiRes.json()
-  const content = aiData.choices[0]?.message?.content ?? ''
+  const raw = aiData.choices[0]?.message?.content ?? ''
+  const content = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
   return NextResponse.json({ message: content })
 }
