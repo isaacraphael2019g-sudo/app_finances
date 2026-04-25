@@ -11,15 +11,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
-  const groqKey = process.env.GROQ_API_KEY?.trim()
-  if (!groqKey) {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim()
+  if (!apiKey) {
     return NextResponse.json({
-      error: 'Chave GROQ_API_KEY não configurada. Adicione-a no arquivo .env.local e reinicie o servidor.',
-    }, { status: 500 })
-  }
-  if (!groqKey.startsWith('gsk_')) {
-    return NextResponse.json({
-      error: 'GROQ_API_KEY inválida — a chave deve começar com "gsk_". Verifique o valor em .env.local e reinicie o servidor.',
+      error: 'Chave OPENROUTER_API_KEY não configurada. Adicione-a no arquivo .env.local e reinicie o servidor.',
     }, { status: 500 })
   }
 
@@ -73,27 +68,29 @@ ${txLines}
 5. Responda perguntas sobre gastos analisando os dados acima.
 6. Seja direto: sem enrolação, sem blocos de código desnecessários.`
 
-  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${groqKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://finance-app.local',
+      'X-Title': 'Finance App',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'deepseek/deepseek-chat:free',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 1024,
       temperature: 0.7,
     }),
   })
 
-  if (!groqRes.ok) {
-    const err = await groqRes.text()
-    return NextResponse.json({ error: `Erro Groq: ${err}` }, { status: groqRes.status })
+  if (!aiRes.ok) {
+    const err = await aiRes.text()
+    return NextResponse.json({ error: `Erro OpenRouter: ${err}` }, { status: aiRes.status })
   }
 
-  const groqData = await groqRes.json()
-  const content = groqData.choices[0]?.message?.content ?? ''
+  const aiData = await aiRes.json()
+  const content = aiData.choices[0]?.message?.content ?? ''
 
   return NextResponse.json({ message: content })
 }
