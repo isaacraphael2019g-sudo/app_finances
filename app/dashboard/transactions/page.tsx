@@ -23,7 +23,7 @@ import {
 import TransactionForm from '@/components/transaction-form'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, getDaysInMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const ALL_CATEGORIES = ['Todas', ...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES.filter(
@@ -45,7 +45,8 @@ export default function TransactionsPage() {
     const supabase = createClient()
     const [year, month] = filterMonth.split('-')
     const start = `${year}-${month}-01`
-    const end = `${year}-${month}-31`
+    const lastDay = getDaysInMonth(new Date(Number(year), Number(month) - 1))
+    const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
 
     let query = supabase
       .from('transactions')

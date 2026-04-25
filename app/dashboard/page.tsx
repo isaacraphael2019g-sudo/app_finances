@@ -16,7 +16,7 @@ import CategoryChart from '@/components/category-chart'
 import TransactionForm from '@/components/transaction-form'
 import { toast } from 'sonner'
 import { TrendingUp, TrendingDown, Wallet, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
-import { format, addMonths, subMonths } from 'date-fns'
+import { format, addMonths, subMonths, getDaysInMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -33,7 +33,8 @@ export default function DashboardPage() {
     const supabase = createClient()
     const [year, month] = monthKey.split('-')
     const start = `${year}-${month}-01`
-    const end = `${year}-${month}-31`
+    const lastDay = getDaysInMonth(new Date(Number(year), Number(month) - 1))
+    const end = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
 
     const { data, error } = await supabase
       .from('transactions')
