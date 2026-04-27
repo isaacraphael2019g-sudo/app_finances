@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 
-  const { messages } = await req.json()
+  const { messages: rawMessages } = await req.json()
+  // Keep only the last 10 messages to avoid exceeding the model's context limit
+  const messages = (rawMessages as { role: string; content: string }[]).slice(-10)
 
   const now = new Date()
   const today = format(now, 'yyyy-MM-dd')
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
       return `${label}: Receitas ${brl(income)} | Despesas ${brl(expenses)} | Saldo ${brl(income - expenses)}`
     }).join('\n')
 
-  const txLines = transactions?.slice(0, 80).map(t =>
+  const txLines = transactions?.slice(0, 40).map(t =>
     `${t.date} | ${t.type === 'income' ? 'Receita' : 'Despesa'} | ${brl(Number(t.amount))} | ${t.category}${t.description ? ' — ' + t.description : ''}`
   ).join('\n') ?? 'Nenhuma transação encontrada.'
 
