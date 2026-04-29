@@ -85,30 +85,46 @@ REGRAS:
 3. JSON: ponto decimal (15.00), datas YYYY-MM-DD, hoje = ${today}
 4. Quando o usuário perguntar sobre um mês específico, use os dados do RESUMO POR MÊS acima`
 
-  const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
-      'X-Title': 'Finance App',
-    },
-    body: JSON.stringify({
-      model: 'google/gemma-4-31b-it:free',
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      max_tokens: 1024,
-      temperature: 0.7,
-    }),
-  })
+  const MODELS = [
+    'google/gemma-4-31b-it:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'minimax/minimax-m2.5:free',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  ]
 
-  if (!aiRes.ok) {
-    const err = await aiRes.text()
-    return NextResponse.json({ error: `Erro OpenRouter: ${err}` }, { status: aiRes.status })
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+    'X-Title': 'Finance App',
   }
 
-  const aiData = await aiRes.json()
-  const raw = aiData.choices[0]?.message?.content ?? ''
-  const content = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+  let lastError = ''
+  for (const model of MODELS) {
+    const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
+    })
 
-  return NextResponse.json({ message: content })
+    if (aiRes.ok) {
+      const aiData = await aiRes.json()
+      const raw = aiData.choices[0]?.message?.content ?? ''
+      const content = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+      return NextResponse.json({ message: content })
+    }
+
+    const errBody = await aiRes.json().catch(() => ({}))
+    const code = errBody?.error?.code
+    lastError = JSON.stringify(errBody)
+    // só tenta o próximo se for rate limit ou endpoint não encontrado
+    if (code !== 429 && code !== 404) break
+  }
+
+  return NextResponse.json({ error: `Erro OpenRouter: ${lastError}` }, { status: 500 })
 }
