@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, Transaction, TransactionFormData } from '@/lib/types'
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, Transaction, TransactionFormData, Account } from '@/lib/types'
 import { CurrencyInput } from '@/components/ui/currency-input'
 
 interface TransactionFormProps {
@@ -36,13 +36,20 @@ export default function TransactionForm({
   onSuccess,
 }: TransactionFormProps) {
   const [loading, setLoading] = useState(false)
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [form, setForm] = useState<TransactionFormData>({
     type: 'expense',
     amount: 0,
     category: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
+    account_id: null,
   })
+
+  useEffect(() => {
+    createClient().from('accounts').select('*').order('created_at')
+      .then(({ data }) => setAccounts((data as Account[]) || []))
+  }, [])
 
   useEffect(() => {
     if (transaction) {
@@ -52,6 +59,7 @@ export default function TransactionForm({
         category: transaction.category,
         description: transaction.description || '',
         date: transaction.date,
+        account_id: transaction.account_id ?? null,
       })
     } else {
       setForm({
@@ -60,6 +68,7 @@ export default function TransactionForm({
         category: '',
         description: '',
         date: new Date().toISOString().split('T')[0],
+        account_id: null,
       })
     }
   }, [transaction, open])
@@ -95,6 +104,7 @@ export default function TransactionForm({
       category: form.category,
       description: form.description || null,
       date: form.date,
+      account_id: form.account_id || null,
     }
 
     let error
@@ -190,6 +200,31 @@ export default function TransactionForm({
               required
             />
           </div>
+
+          {accounts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Conta (opcional)</Label>
+              <Select
+                value={form.account_id ?? 'none'}
+                onValueChange={v => setForm({ ...form, account_id: v === 'none' ? null : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem conta</SelectItem>
+                  {accounts.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full inline-block" style={{ backgroundColor: a.color }} />
+                        {a.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição (opcional)</Label>

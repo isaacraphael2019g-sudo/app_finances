@@ -8,6 +8,7 @@ export interface Transaction {
   category: string
   description: string | null
   date: string
+  account_id?: string | null
   created_at: string
 }
 
@@ -17,6 +18,30 @@ export interface TransactionFormData {
   category: string
   description?: string
   date: string
+  account_id?: string | null
+}
+
+export interface Account {
+  id: string
+  user_id: string
+  name: string
+  type: 'checking' | 'savings' | 'cash' | 'investment'
+  color: string
+  initial_balance: number
+  created_at: string
+}
+
+export interface RecurringTransaction {
+  id: string
+  user_id: string
+  type: TransactionType
+  amount: number
+  category: string
+  description: string | null
+  frequency: 'monthly' | 'weekly' | 'yearly'
+  next_date: string
+  active: boolean
+  created_at: string
 }
 
 export const INCOME_CATEGORIES = [

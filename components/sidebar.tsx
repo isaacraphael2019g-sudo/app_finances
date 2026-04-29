@@ -10,13 +10,16 @@ import { cn } from '@/lib/utils'
 import {
   MessageSquare, LayoutDashboard, List,
   LogOut, Menu, X, Sun, Moon, Wallet,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, RefreshCw, BarChart2,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/transactions', label: 'Transações', icon: List },
-  { href: '/dashboard/chat', label: 'Seu Assistente', icon: MessageSquare },
+  { href: '/dashboard',              label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/dashboard/transactions', label: 'Transações',   icon: List },
+  { href: '/dashboard/accounts',     label: 'Contas',       icon: Wallet },
+  { href: '/dashboard/recurring',    label: 'Recorrentes',  icon: RefreshCw },
+  { href: '/dashboard/dre',          label: 'DRE',          icon: BarChart2 },
+  { href: '/dashboard/chat',         label: 'Seu Assistente', icon: MessageSquare },
 ]
 
 interface SidebarProps {
