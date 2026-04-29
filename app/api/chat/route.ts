@@ -94,7 +94,7 @@ REGRAS:
       'X-Title': 'Finance App',
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-3.1-8b-instruct:free',
+      model: 'google/gemma-4-31b-it:free',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
       max_tokens: 1024,
       temperature: 0.7,
