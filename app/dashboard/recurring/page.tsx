@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2, RefreshCw, Play, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Pencil, Trash2, Receipt, Play, TrendingUp, TrendingDown } from 'lucide-react'
 import { format, addMonths, addWeeks, addYears } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -27,8 +27,12 @@ function calcNextDate(date: string, freq: string): string {
 
 const emptyForm = {
   type: 'expense' as 'income' | 'expense',
-  amount: 0, category: '', description: '', frequency: 'monthly',
+  amount: 0,
+  category: '',
+  description: '',
+  frequency: 'monthly',
   next_date: format(new Date(), 'yyyy-MM-dd'),
+  is_recurring: true,
 }
 
 export default function RecurringPage() {
@@ -56,8 +60,15 @@ export default function RecurringPage() {
 
   function openEdit(item: RecurringTransaction) {
     setSelected(item)
-    setForm({ type: item.type, amount: item.amount, category: item.category,
-      description: item.description || '', frequency: item.frequency, next_date: item.next_date })
+    setForm({
+      type: item.type,
+      amount: item.amount,
+      category: item.category,
+      description: item.description || '',
+      frequency: item.frequency,
+      next_date: item.next_date,
+      is_recurring: item.is_recurring ?? true,
+    })
     setFormOpen(true)
   }
 
@@ -65,12 +76,23 @@ export default function RecurringPage() {
     e.preventDefault()
     if (!form.category) { toast.error('Selecione uma categoria'); return }
     if (form.amount <= 0) { toast.error('Informe um valor'); return }
+
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('Sessão expirada'); return }
 
-    const payload = { user_id: user.id, type: form.type, amount: form.amount, category: form.category,
-      description: form.description || null, frequency: form.frequency, next_date: form.next_date, active: true }
+    const payload = {
+      user_id: user.id,
+      type: form.type,
+      amount: form.amount,
+      category: form.category,
+      description: form.description || null,
+      frequency: form.is_recurring ? form.frequency : 'monthly',
+      next_date: form.next_date,
+      active: true,
+      is_recurring: form.is_recurring,
+    }
+
     const { error } = selected
       ? await supabase.from('recurring_transactions').update(payload).eq('id', selected.id)
       : await supabase.from('recurring_transactions').insert(payload)
@@ -85,15 +107,24 @@ export default function RecurringPage() {
     if (!user) { toast.error('Sessão expirada'); return }
 
     const { error: txErr } = await supabase.from('transactions').insert({
-      user_id: user.id, type: item.type, amount: item.amount,
-      category: item.category, description: item.description, date: item.next_date,
+      user_id: user.id,
+      type: item.type,
+      amount: item.amount,
+      category: item.category,
+      description: item.description,
+      date: item.next_date,
     })
     if (txErr) { toast.error('Erro ao lançar transação'); return }
 
-    const next = calcNextDate(item.next_date, item.frequency)
-    await supabase.from('recurring_transactions').update({ next_date: next }).eq('id', item.id)
+    if (item.is_recurring) {
+      const next = calcNextDate(item.next_date, item.frequency)
+      await supabase.from('recurring_transactions').update({ next_date: next }).eq('id', item.id)
+      toast.success(`Lançado! Próximo: ${format(new Date(next + 'T12:00:00'), 'dd/MM/yyyy')}`)
+    } else {
+      await supabase.from('recurring_transactions').delete().eq('id', item.id)
+      toast.success('Conta lançada e removida da lista!')
+    }
 
-    toast.success(`Lançado! Próximo: ${format(new Date(next + 'T12:00:00'), "dd/MM/yyyy")}`)
     load()
   }
 
@@ -111,10 +142,10 @@ export default function RecurringPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Recorrentes</h1>
-          <p className="text-muted-foreground text-sm mt-1">Contas e receitas fixas</p>
+          <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+          <p className="text-muted-foreground text-sm mt-1">Gerencie suas contas fixas e recorrentes</p>
         </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nova recorrente</Button>
+        <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nova conta</Button>
       </div>
 
       {loading ? (
@@ -124,8 +155,8 @@ export default function RecurringPage() {
       ) : items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <RefreshCw className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="font-medium text-foreground">Nenhuma transação recorrente</p>
+            <Receipt className="h-10 w-10 text-muted-foreground mb-3" />
+            <p className="font-medium text-foreground">Nenhuma conta cadastrada</p>
             <p className="text-muted-foreground text-sm mt-1">Cadastre contas fixas como aluguel, salário, assinaturas...</p>
             <Button className="mt-4 gap-2" onClick={openCreate}><Plus className="h-4 w-4" /> Adicionar</Button>
           </CardContent>
@@ -144,10 +175,14 @@ export default function RecurringPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-foreground truncate">{item.description || item.category}</span>
                     <Badge variant="secondary" className="text-xs shrink-0">{item.category}</Badge>
-                    <Badge variant="outline" className="text-xs shrink-0">{FREQ_LABELS[item.frequency]}</Badge>
+                    {item.is_recurring
+                      ? <Badge variant="outline" className="text-xs shrink-0">{FREQ_LABELS[item.frequency]}</Badge>
+                      : <Badge variant="outline" className="text-xs shrink-0 text-amber-600 border-amber-300">Única vez</Badge>
+                    }
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Próximo: {format(new Date(item.next_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {item.is_recurring ? 'Próximo: ' : 'Vencimento: '}
+                    {format(new Date(item.next_date + 'T12:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </p>
                 </div>
                 <span className={`font-semibold text-lg shrink-0 ${item.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
@@ -175,7 +210,7 @@ export default function RecurringPage() {
       {/* Form */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>{selected ? 'Editar recorrente' : 'Nova recorrente'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{selected ? 'Editar conta' : 'Nova conta a pagar'}</DialogTitle></DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-2">
               <Label>Tipo</Label>
@@ -192,10 +227,12 @@ export default function RecurringPage() {
                 ))}
               </div>
             </div>
+
             <div className="space-y-2">
               <Label>Valor</Label>
               <CurrencyInput value={form.amount} onChange={v => setForm({ ...form, amount: v })} />
             </div>
+
             <div className="space-y-2">
               <Label>Categoria</Label>
               <Select value={form.category} onValueChange={v => v && setForm({ ...form, category: v })}>
@@ -203,26 +240,54 @@ export default function RecurringPage() {
                 <SelectContent>{categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
-              <Label>Frequência</Label>
-              <Select value={form.frequency} onValueChange={v => v && setForm({ ...form, frequency: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="weekly">Semanal</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Próximo lançamento</Label>
+              <Label>{form.is_recurring ? 'Próximo lançamento' : 'Data de vencimento'}</Label>
               <Input type="date" value={form.next_date} onChange={e => setForm({ ...form, next_date: e.target.value })} required />
             </div>
+
+            <div className="space-y-2">
+              <Label>Esta conta se repete?</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setForm({ ...form, is_recurring: true })}
+                  className={`py-2 px-4 rounded-md text-sm font-medium border transition-colors ${
+                    form.is_recurring
+                      ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-transparent dark:border-gray-700 dark:text-gray-300'
+                  }`}>
+                  Sim, recorrente
+                </button>
+                <button type="button" onClick={() => setForm({ ...form, is_recurring: false })}
+                  className={`py-2 px-4 rounded-md text-sm font-medium border transition-colors ${
+                    !form.is_recurring
+                      ? 'bg-amber-50 border-amber-500 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-transparent dark:border-gray-700 dark:text-gray-300'
+                  }`}>
+                  Não, única vez
+                </button>
+              </div>
+            </div>
+
+            {form.is_recurring && (
+              <div className="space-y-2">
+                <Label>Frequência</Label>
+                <Select value={form.frequency} onValueChange={v => v && setForm({ ...form, frequency: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Mensal</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="yearly">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input placeholder="Ex: Aluguel, Netflix, Salário..." value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })} />
             </div>
+
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setFormOpen(false)}>Cancelar</Button>
               <Button type="submit" className="flex-1">Salvar</Button>
@@ -235,7 +300,7 @@ export default function RecurringPage() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Excluir recorrente</DialogTitle>
+            <DialogTitle>Excluir conta</DialogTitle>
             <DialogDescription>Tem certeza? Esta ação não pode ser desfeita.</DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-2">

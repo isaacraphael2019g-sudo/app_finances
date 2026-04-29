@@ -41,6 +41,7 @@ export interface RecurringTransaction {
   frequency: 'monthly' | 'weekly' | 'yearly'
   next_date: string
   active: boolean
+  is_recurring: boolean
   created_at: string
 }
 

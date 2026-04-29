@@ -10,15 +10,14 @@ import { cn } from '@/lib/utils'
 import {
   MessageSquare, LayoutDashboard, List,
   LogOut, Menu, X, Sun, Moon, Wallet,
-  ChevronLeft, ChevronRight, RefreshCw, BarChart2,
+  ChevronLeft, ChevronRight, BarChart2, Receipt,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/dashboard',              label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/dashboard/transactions', label: 'Transações',   icon: List },
-  { href: '/dashboard/accounts',     label: 'Contas',       icon: Wallet },
-  { href: '/dashboard/recurring',    label: 'Recorrentes',  icon: RefreshCw },
-  { href: '/dashboard/dre',          label: 'DRE',          icon: BarChart2 },
+  { href: '/dashboard',              label: 'Dashboard',      icon: LayoutDashboard },
+  { href: '/dashboard/transactions', label: 'Transações',     icon: List },
+  { href: '/dashboard/recurring',    label: 'Contas a Pagar', icon: Receipt },
+  { href: '/dashboard/dre',          label: 'DRE',            icon: BarChart2 },
   { href: '/dashboard/chat',         label: 'Seu Assistente', icon: MessageSquare },
 ]
 
